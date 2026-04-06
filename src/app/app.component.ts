@@ -1,13 +1,26 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { RouterOutlet, Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  template: '<router-outlet></router-outlet>' // O tu HTML actual
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'pesoCabal';
+  constructor(private router: Router, private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['token']) {
+        // Esto limpia la URL dejando solo /dashboard
+        this.router.navigate([], {
+          queryParams: { token: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+      }
+    });
+  }
 }
