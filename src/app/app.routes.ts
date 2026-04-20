@@ -3,14 +3,17 @@ import { authGuard } from './auth/auth.guard';
 
 export const routes: Routes = [
   {
-    path: 'dashboard',
-    // IMPORTANTE: La ruta ahora coincide con la carpeta que creaste
-    loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard]
+    path: '',
+    canActivate: [authGuard], // Aquí queda el guard listo
+    children: [
+      /* Aquí irás agregando tus rutas cuando tengas los componentes, ejemplo:
+         { path: 'dashboard', component: DashboardComponent },
+      */
+    ]
   },
   {
-    path: '',
-    redirectTo: 'dashboard',
+    path: '**',
+    redirectTo: '',
     pathMatch: 'full'
   }
 ];
