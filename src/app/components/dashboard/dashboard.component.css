@@ -1,0 +1,132 @@
+:host {
+  /* Nueva Paleta: Peso Cabal (Inspirada en el Cafetal) */
+  --cabal-dark: #1b2e22;      /* Verde bosque profundo */
+  --cabal-green: #2e7d32;     /* Verde cafeto */
+  --cabal-green-light: #4caf50; /* Verde más brillante para iconos */
+  --cabal-cream: #f4f7f5;    /* Fondo grisáceo muy claro */
+  --cabal-gold: #a67c52;     /* Color grano tostado */
+  --cabal-white: #ffffff;
+
+  display: block;
+  height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+.drawer-container {
+  height: 100vh;
+  background-color: var(--cabal-cream);
+}
+
+/* SIDENAV */
+.sidenav {
+  width: 280px;
+  background-color: var(--cabal-dark) !important;
+  color: var(--cabal-white);
+  padding: 24px 16px;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 0 50px 15px;
+  color: var(--cabal-white);
+}
+
+.coffee-logo {
+  color: var(--cabal-green-light);
+  font-size: 32px;
+}
+
+/* NAVBAR - AJUSTADO PARA LETRAS BLANCAS */
+mat-nav-list a {
+  border-radius: 12px !important;
+  margin-bottom: 12px;
+  color: var(--cabal-white) !important; /* Texto en blanco puro */
+  transition: all 0.3s ease;
+  color: var(--cabal-white) !important;
+}
+
+mat-nav-list a mat-icon {
+  color: var(--cabal-green-light) !important; /* Iconos un poco más claros para contraste */
+  margin-right: 15px !important;
+}
+
+mat-nav-list a:hover {
+  background: rgba(255, 255, 255, 0.1) !important; /* Fondo sutil al pasar el mouse */
+  color: var(--cabal-white) !important;
+}
+
+/* Logout con estilo elegante */
+.logout-btn {
+  color: #ffab91 !important;
+  width: 100%;
+  border: 1px solid rgba(255,171,145,0.3) !important;
+}
+
+/* HEADER */
+.app-container {
+  background-color: var(--cabal-cream) !important;
+  padding: 40px 5%;
+}
+
+.brand-text h1 {
+  font-size: 2.2rem;
+  color: var(--cabal-dark);
+  font-weight: 800;
+}
+
+/* TARJETAS CON ESTILO "PESO CABAL" */
+.product-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  margin-top: 50px;
+  justify-content: center;
+}
+
+.coffee-card {
+  background-color: var(--cabal-white) !important;
+  border: none !important;
+  border-radius: 20px !important;
+  width: 260px;
+  padding: 25px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+
+.coffee-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(27, 46, 34, 0.15);
+}
+
+.image-wrapper {
+  width: 80px;
+  height: 80px;
+  background: var(--cabal-cream);
+  border-radius: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--cabal-green);
+}
+
+.info h2 {
+  color: var(--cabal-dark);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.go-btn {
+  background-color: var(--cabal-dark) !important;
+  color: white !important;
+  width: 100%;
+  border-radius: 12px !important;
+}
