@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { AuthService } from "../../auth/auth.service"; // Importamos el servicio
 
 // Importaciones de Angular Material
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -25,19 +26,25 @@ import { MatCardModule } from '@angular/material/card';
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent {
-  // Datos para las tarjetas de Peso Cabal
   productos = [
-    { nombre: 'Pesaje', icon: 'history_edu', route: '/historial' },
-    { nombre: 'QR', icon: 'qr_code', route: '/lectura-qr' },
-    { nombre: 'Cuentas', icon: 'analytics', route: '/reportes' }
+    { nombre: 'Pesaje', icon: 'history_edu', route: '/dashboard' },
+    { nombre: 'QR', icon: 'qr_code', route: '/dashboard/lectura-qr' },
+    { nombre: 'Cuentas', icon: 'analytics', route: '/dashboard/cuentas' }
   ];
 
-  // Eliminamos el AuthService del constructor
-  constructor() {}
+  // SOLUCIÓN: Un solo constructor que inyecta ambos servicios
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
+
+  // Función para determinar si mostrar las tarjetas o el contenido hijo
+  isHome(): boolean {
+    return this.router.url === '/dashboard' || this.router.url === '/';
+  }
 
   cerrarSesion(): void {
-    // Como no hay login, podemos simplemente recargar la app o redirigir al inicio
-    console.log('Cerrando sesión simulado');
-    window.location.href = '/';
+    // Ahora funciona porque authService ya está inyectado arriba
+    this.authService.logout();
   }
 }
