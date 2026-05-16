@@ -2,10 +2,12 @@ export interface Cuenta {
   idcuenta: number;
   noCuenta: string;
   nitagricultor: string;
-  estado: number;
-  fechaCreacion: string;
   pesoTotalEsperado: number;
+  fechaCreacion: string;
   idEstadoPesaje: number;
+  nombreAgricultor: string;
+  estadoNombre: string;
+  cantParcialidades: number; // Mapeado exacto con el conteo
 }
 
 export interface DetalleCuenta {
@@ -15,7 +17,8 @@ export interface DetalleCuenta {
   placa: string;
   cuitransportista: string;
   pesoestimado: number;
-  pesorecibido: number;
-  estadopesaje: number;
-  fechacreacion: string;
+  pesorecibido: number | null;
+  estado: number;
+  estadopesaje: number | null; // 99 para "Pesaje Realizado"
+  fecharecepcion: string | null;
 }

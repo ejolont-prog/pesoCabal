@@ -1,21 +1,29 @@
+/* Contenedor Principal con Scroll y Espaciado */
 :host {
   --coffee-dark: #2b170e;
-  --accent-gold: #c6a47e;
+  --accent-gold: #b08d5c;
   --melon-bg: #fde6d8;
   --melon-text: #e59a7d;
+  --bg-main: #f8f9fa;
+
   display: block;
-  background-color: #fafafa;
+  background-color: var(--bg-main);
   min-height: 100vh;
   width: 100%;
+  overflow-y: auto; /* Permite scroll vertical */
 }
 
 .page-container {
-  padding: 20px 40px;
+  padding: 30px 40px 80px 40px; /* 80px abajo para que NUNCA tope con el borde */
   box-sizing: border-box;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
+/* Cabecera */
 .section-header {
   margin-bottom: 30px;
+  padding-bottom: 15px;
   border-bottom: 2px solid var(--melon-bg);
 }
 
@@ -27,9 +35,9 @@
 
 .header-with-icon mat-icon {
   color: var(--accent-gold);
-  font-size: 30px;
-  width: 30px;
-  height: 30px;
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
 }
 
 .title-group h1 {
@@ -39,51 +47,167 @@
   font-size: 1.8rem;
 }
 
+.title-group p {
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+/* Tarjeta de Filtros */
 .filter-card {
   background-color: white !important;
-  border-radius: 15px !important;
-  padding: 10px 25px !important;
+  border-radius: 12px !important;
+  padding: 10px 20px !important;
   margin-bottom: 25px;
-  border: 1px solid rgba(229, 154, 125, 0.1) !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03) !important;
+  border: 1px solid rgba(0,0,0,0.05) !important;
 }
 
 .filter-container {
   display: flex;
   gap: 20px;
   align-items: center;
+  flex-wrap: wrap; /* Por si la pantalla se achica */
 }
 
+/* Tarjeta de Tabla */
 .table-card {
   background-color: white !important;
-  border-radius: 15px !important;
+  border-radius: 12px !important;
   overflow: hidden;
-  width: 100%;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.05) !important;
+  border: 1px solid #eee !important;
+  margin-bottom: 20px; /* Margen respecto al padding del container */
 }
 
+/* Estilos de Tabla Material */
+.w-100 { width: 100%; }
+
 .mat-mdc-header-cell {
+  background-color: #fafafa;
   color: var(--melon-text) !important;
   font-weight: 700 !important;
   text-transform: uppercase;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 1px;
+  padding: 16px !important;
 }
 
+.mat-mdc-cell {
+  padding: 14px 16px !important; /* Más espacio vertical entre registros */
+  border-bottom: 1px solid #f0f0f0 !important;
+  color: #444;
+}
+
+.mat-mdc-row:hover {
+  background-color: #fffaf8 !important; /* Efecto hover sutil */
+}
+
+.mat-mdc-row:last-child .mat-mdc-cell {
+  border-bottom: none !important; /* Limpia el borde de la última fila */
+}
+
+/* Estados y Badges */
 .status-badge-active {
-  color: #2e7d32;
-  background: #e8f5e9;
+  color: #2e7d32 !important;
+  background: #e8f5e9 !important;
   border-radius: 8px;
-  font-weight: bold;
+  font-weight: 700;
+  padding: 0 12px !important;
+  border: 1px solid #c8e6c9 !important;
 }
 
+/* Tipografía de Datos */
+.fw-bold { font-weight: 700; color: var(--coffee-dark); }
+.account-number { color: #000; font-family: monospace; font-size: 1.1rem; }
+
+/* Botones */
+button[mat-raised-button].mat-primary {
+  background-color: #3f51b5 !important;
+  border-radius: 8px;
+  padding: 0 20px;
+}
+
+/* Animaciones y Otros */
 .loading-icon {
   animation: spin 2s linear infinite;
   color: var(--accent-gold);
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
 }
 
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
+/* Helpers de Layout */
 .flex-1 { flex: 1; }
 .flex-2 { flex: 2; }
-.w-100 { width: 100%; }
 .p-0 { padding: 0 !important; }
-.fw-bold { font-weight: 700; }
+.text-center { text-align: center; }
+
+/* Responsive scroll para la tabla */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+
+
+/* --- BADGES DINÁMICOS POR ESTADO --- */
+.badge-estado {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  min-width: 130px;
+  text-align: center;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* 1. Sin cuenta creada (Gris Neutro) */
+.estado-sin-cuenta {
+  background-color: #e0e0e0 !important;
+  color: #616161 !important;
+}
+
+/* 2. Cuenta creada (Azul Info) */
+.estado-creada {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+/* 3. Cuenta abierta (Melón / Tu paleta) */
+.estado-abierta {
+  background-color: var(--melon-bg) !important;
+  color: var(--coffee-dark) !important;
+}
+
+/* 4. Pesaje iniciado (Naranja / Alerta) */
+.estado-iniciado {
+  background-color: #fff3e0 !important;
+  color: #ef6c00 !important;
+}
+
+/* 5. Pesaje finalizado (Verde Suave) */
+.estado-finalizado {
+  background-color: #e8f5e9 !important;
+  color: #2e7d32 !important;
+}
+
+/* 6. Cuenta cerrada (Rojo/Gris oscuro) */
+.estado-cerrada {
+  background-color: #fce4ec !important;
+  color: #c2185b !important;
+}
+
+/* 7. Cuenta confirmada (Dorado / Éxito Total) */
+.estado-confirmada {
+  background-color: #fff9c4 !important;
+  color: #fbc02d !important;
+  border: 1px solid #fbc02d;
+}
+
