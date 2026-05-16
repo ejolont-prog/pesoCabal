@@ -42,38 +42,72 @@ import Swal from 'sweetalert2';
 })
 export class CuentasComponent implements OnInit {
 
-  // Columnas para la Tabla 1 (Bandeja Principal de Cuentas)
   columnasCuentas: string[] = ['noCuenta', 'agricultor', 'pesoTotal', 'parcialidades', 'fecha', 'estado', 'acciones'];
-
-  // Columnas para la Tabla 2 (Parcialidades en la Vista de Detalle)
   columnasDetalles: string[] = ['idParcialidad', 'placa', 'cui', 'tipoMedida', 'pesoBascula', 'estadoControl', 'operaciones'];
 
-  // Orígenes de datos para las tablas
   dataSourceCuentas: Cuenta[] = [];
   dataSourceFiltrado: Cuenta[] = [];
   dataSourceDetalles: DetalleCuenta[] = [];
 
-  // Variables de control de estado y filtros globales
   cargando: boolean = true;
   vistaDetalle: boolean = false;
   cuentaSeleccionada: string | null = null;
   filtroEstado: string = '';
-  listaEstados: string[] = ['Pesaje iniciado', 'Pesaje finalizado'];
 
-  // Simulación del operario en sesión para el registro de boletas físicas
+  // 🚀 Modificado: Ahora se llena dinámicamente con los datos del Catálogo de la BD
+  listaEstados: string[] = [];
+
+  // Lista para almacenar las unidades de medida obtenidas del catálogo con ID 3
+  listaUnidadesMedida: any[] = [];
+
   usuarioSesion: string = 'Usuario_PesoCabal_UMG';
 
   constructor(private beneficioService: BeneficioService) {}
 
   ngOnInit(): void {
-    this.cargarDatosCuentas();
+    this.cargarTodoElFlujo();
   }
 
+  // CORREGIDO: Se cambia a '==' para evitar fallos de tipo (string vs number) que provocaban el estado 'null'
   get cuentaActual(): Cuenta | undefined {
-    return this.dataSourceCuentas.find(c => c.nocuenta === this.cuentaSeleccionada);
+    return this.dataSourceCuentas.find(c => c.nocuenta == this.cuentaSeleccionada);
   }
 
-  // 1. BANDEJA PRINCIPAL: Recuperar las cuentas filtradas desde el backend
+  // 🚀 Nuevo: Orquesta la carga de catálogos secuencialmente antes de renderizar la tabla
+  cargarTodoElFlujo() {
+    this.cargando = true;
+
+    // Step 1: Cargar estados de pesaje dinámicos del beneficio
+    this.beneficioService.listarEstadosPesaje().subscribe({
+      next: (estados: any[]) => {
+        this.listaEstados = estados.map(e => e.detallecatalogo);
+        // Step 2: Cargar unidades de medida
+        this.cargarUnidadesMedidaCatalogo();
+      },
+      error: (err: any) => {
+        console.error('Error al cargar catálogo dinámico de estados:', err);
+        // Fallback clásico de emergencia si se cae el servicio de catálogos
+        this.listaEstados = ['Pesaje iniciado', 'Pesaje finalizado'];
+        this.cargarUnidadesMedidaCatalogo();
+      }
+    });
+  }
+
+  // Carga las unidades de medida desde la tabla catalogos donde idcatalogo = 3
+  cargarUnidadesMedidaCatalogo() {
+    this.beneficioService.listarCatalogosPorId(6).subscribe({
+      next: (unidades: any[]) => {
+        this.listaUnidadesMedida = unidades;
+        // Step 3: Con catálogos listos, cargamos las cuentas
+        this.cargarDatosCuentas();
+      },
+      error: (err: any) => {
+        console.error('Error al cargar catalogo de unidades de medida:', err);
+        this.cargarDatosCuentas();
+      }
+    });
+  }
+
   cargarDatosCuentas() {
     this.cargando = true;
     this.beneficioService.listarCuentas().subscribe({
@@ -96,23 +130,21 @@ export class CuentasComponent implements OnInit {
     this.dataSourceFiltrado = this.dataSourceCuentas.filter(c => {
       const matchTexto = c.nocuenta.toLowerCase().includes(termino) ||
         (c.nitagricultor && c.nitagricultor.toLowerCase().includes(termino));
-
       const matchNombre = c.nombreagricultor && c.nombreagricultor.toLowerCase().includes(termino);
 
+      // La evaluación ahora hace un match exacto con el string renderizado desde la base de datos
       const matchEstado = this.filtroEstado ? (c.estadonombre === this.filtroEstado) : true;
 
       return (matchTexto || matchNombre) && matchEstado;
     });
   }
 
-  // Limpieza de inputs y reajuste de la colección filtrada
   limpiarFiltros(input: HTMLInputElement) {
     input.value = '';
     this.filtroEstado = '';
     this.dataSourceFiltrado = this.dataSourceCuentas;
   }
 
-  // 2. PANTALLA DE DETALLE: Cargar parcialidades de la cuenta seleccionada
   verDetalleCuenta(noCuenta: string) {
     this.cuentaSeleccionada = noCuenta;
     this.cargando = true;
@@ -129,16 +161,27 @@ export class CuentasComponent implements OnInit {
     });
   }
 
-  // Regresar de manera segura a la bandeja principal (Limpia contextos)
   regresarABandeja() {
     this.vistaDetalle = false;
     this.cuentaSeleccionada = null;
-    this.cargarDatosCuentas();
+    this.cargarTodoElFlujo();
   }
 
-  // 3. ACCIÓN PRINCIPAL: Guardar pesaje físico (Formulario de Báscula modificado)
+  // ACCIÓN PRINCIPAL: Registra en el flujo de la parcialidad e inserta en la tabla pesajecabal
   async abrirModalPeso(parcialidad: DetalleCuenta) {
-    const unidadPorDefecto = this.cuentaActual?.unidadpesonombre || 'Quintales';
+    if (!this.cuentaActual) {
+      Swal.fire('Accion Bloqueada', 'La cuenta asociada no se encuentra activa o su estado es invalido.', 'error');
+      return;
+    }
+
+    let opcionesHtml = '';
+    this.listaUnidadesMedida.forEach(u => {
+      opcionesHtml += `<option value="${u.idopcioncatalogo}">${u.nombreopcion}</option>`;
+    });
+
+    if (opcionesHtml === '') {
+      opcionesHtml = `<option value="1">Quintales</option>`;
+    }
 
     const { value: formValues } = await Swal.fire({
       title: `Captura de Bascula — Parcialidad #${parcialidad.noparcialidad}`,
@@ -149,11 +192,9 @@ export class CuentasComponent implements OnInit {
           <label style="font-weight: bold; margin-top: 12px; display:block;">Peso Obtenido:</label>
           <input id="swal-peso" class="swal2-input" type="number" step="0.01" style="width: 95%; margin-left:0; margin-top:5px;" placeholder="0.00">
 
-          <label style="font-weight: bold; margin-top: 12px; display:block;">Tipo Medida de Peso:</label>
-          <select id="swal-tipoMedida" class="swal2-input" style="width: 95%; margin-left:0; margin-top:5px; height: 50px; padding: 0 10px;">
-            <option value="Quintales" ${unidadPorDefecto === 'Quintales' ? 'selected' : ''}>Quintales</option>
-            <option value="Libras" ${unidadPorDefecto === 'Libras' ? 'selected' : ''}>Libras</option>
-            <option value="Kilogramos" ${unidadPorDefecto === 'Kilogramos' ? 'selected' : ''}>Kilogramos</option>
+          <label style="font-weight: bold; margin-top: 12px; display:block;">Tipo Medida de Peso (Catalogo):</label>
+          <select id="swal-idUnidadMedida" class="swal2-input" style="width: 95%; margin-left:0; margin-top:5px; height: 50px; padding: 0 10px;">
+            ${opcionesHtml}
           </select>
 
           <label style="font-weight: bold; margin-top: 12px; display:block;">Observaciones del Pesaje:</label>
@@ -165,7 +206,7 @@ export class CuentasComponent implements OnInit {
       cancelButtonText: 'Cancelar',
       preConfirm: () => {
         const peso = (document.getElementById('swal-peso') as HTMLInputElement).value;
-        const tipoMedida = (document.getElementById('swal-tipoMedida') as HTMLSelectElement).value;
+        const idUnidadMedida = (document.getElementById('swal-idUnidadMedida') as HTMLSelectElement).value;
         const observaciones = (document.getElementById('swal-observaciones') as HTMLTextAreaElement).value;
 
         if (!peso || isNaN(Number(peso)) || Number(peso) <= 0) {
@@ -173,10 +214,11 @@ export class CuentasComponent implements OnInit {
           return false;
         }
 
-        // Devolvemos el objeto completo con la estructura requerida por el backend
         return {
-          peso: Number(peso),
-          tipoMedida: tipoMedida,
+          nocuenta: parcialidad.nocuenta,
+          parcialidad: parcialidad.noparcialidad.toString(),
+          peso: Number(peso),           // ✅ renombrar a "peso"
+          idunidadmedida: Number(idUnidadMedida),
           observaciones: observaciones || ''
         };
       }
@@ -184,12 +226,12 @@ export class CuentasComponent implements OnInit {
 
     if (formValues) {
       this.cargando = true;
-      // Enviamos el payload estructurado completo al servicio
+
       this.beneficioService.registrarPeso(parcialidad.iddetallecuenta, formValues).subscribe({
         next: () => {
           this.cargando = false;
-          Swal.fire('Exito', 'Se actualizo con exito el peso de la parcialidad.', 'success').then(() => {
-            this.verDetalleCuenta(this.cuentaSeleccionada!); // Refresco automatico obligatorio
+          Swal.fire('Exito', 'Se guardo el registro en pesajecabal y se actualizo la parcialidad.', 'success').then(() => {
+            this.verDetalleCuenta(this.cuentaSeleccionada!);
           });
         },
         error: (err) => {
@@ -200,7 +242,6 @@ export class CuentasComponent implements OnInit {
     }
   }
 
-  // 4. ACCIÓN SECUNDARIA: Emitir e Imprimir Comprobante de Boleta
   imprimirTicketBoleta(parcialidad: DetalleCuenta) {
     this.cargando = true;
     this.beneficioService.generarBoleta(parcialidad.iddetallecuenta, this.usuarioSesion).subscribe({
