@@ -95,7 +95,7 @@ export class CuentasComponent implements OnInit {
 
   // Carga las unidades de medida desde la tabla catalogos donde idcatalogo = 3
   cargarUnidadesMedidaCatalogo() {
-    this.beneficioService.listarCatalogosPorId(3).subscribe({
+    this.beneficioService.listarCatalogosPorId(6).subscribe({
       next: (unidades: any[]) => {
         this.listaUnidadesMedida = unidades;
         // Step 3: Con catálogos listos, cargamos las cuentas
@@ -217,7 +217,7 @@ export class CuentasComponent implements OnInit {
         return {
           nocuenta: parcialidad.nocuenta,
           parcialidad: parcialidad.noparcialidad.toString(),
-          pesoobtenido: Number(peso),
+          peso: Number(peso),           // ✅ renombrar a "peso"
           idunidadmedida: Number(idUnidadMedida),
           observaciones: observaciones || ''
         };
