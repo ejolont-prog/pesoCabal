@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Cuenta, DetalleCuenta } from '../models/beneficio.model';
+import { Cuenta, DetalleCuenta } from '../models/cuenta.model';
 
 @Injectable({
   providedIn: 'root'
@@ -11,18 +11,24 @@ export class BeneficioService {
 
   constructor(private http: HttpClient) {}
 
-  // Listar todas las cuentas (Bandeja Principal)
+  // 1. Listar todas las cuentas (Bandeja Principal filtrada en DB)
   listarCuentas(): Observable<Cuenta[]> {
     return this.http.get<Cuenta[]>(`${this.API_URL}/cuentas`);
   }
 
-  // Listar parcialidades de una cuenta
+  // 2. Listar parcialidades de una cuenta
   listarDetalles(noCuenta: string): Observable<DetalleCuenta[]> {
     return this.http.get<DetalleCuenta[]>(`${this.API_URL}/cuentas/${noCuenta}/detalles`);
   }
 
-  // Registrar peso en báscula
+  // 3. Registrar peso en báscula física (Paso 3 del CU)
   registrarPeso(idDetalle: number, peso: number): Observable<any> {
     return this.http.post(`${this.API_URL}/detalles/${idDetalle}/pesar`, { peso });
+  }
+
+  // 4. Generar Boleta de control (Paso 4 del CU)
+  generarBoleta(idDetalle: number, usuarioLogueado: string): Observable<any> {
+    const headers = new HttpHeaders().set('X-User-Logged', usuarioLogueado);
+    return this.http.post(`${this.API_URL}/detalles/${idDetalle}/boleta`, {}, { headers });
   }
 }

@@ -1,107 +1,188 @@
 <div class="page-container">
-  <div class="section-header">
-    <div class="title-group">
-      <div class="header-with-icon">
-        <mat-icon>account_balance</mat-icon> <h1>Cuentas de Beneficio</h1>
-      </div>
-      <p>Gestión del sistema Peso Cabal - Módulo Beneficio</p>
-    </div>
+
+  <div *ngIf="cargando" class="loading-box text-center p-4">
+    <mat-icon class="loading-icon">sync</mat-icon>
+    <p>Sincronizando operaciones de báscula con el servidor...</p>
   </div>
 
-  <mat-card class="filter-card">
-    <div class="filter-container">
-      <mat-form-field appearance="outline" class="flex-2">
-        <mat-label>No. Cuenta / NIT Agricultor</mat-label>
-        <input matInput (keyup)="aplicarFiltrosGlobales(inputBusqueda.value)" #inputBusqueda>
-        <mat-icon matSuffix>search</mat-icon>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="flex-1">
-        <mat-label>Estado</mat-label>
-        <mat-select [(ngModel)]="filtroEstado" (selectionChange)="aplicarFiltrosGlobales(inputBusqueda.value)">
-          <mat-option value="">Todos</mat-option>
-          <mat-option *ngFor="let est of listaEstados" [value]="est">{{est}}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <button mat-stroked-button color="warn" (click)="limpiarFiltros(inputBusqueda)">
-        <mat-icon>filter_alt_off</mat-icon> Limpiar
-      </button>
+  <div *ngIf="!vistaDetalle && !cargando">
+    <div class="section-header">
+      <div class="title-group">
+        <div class="header-with-icon">
+          <mat-icon color="primary">account_balance</mat-icon> <h1>Cuentas de Beneficio</h1>
+        </div>
+        <p>Gestión del sistema Peso Cabal - Módulo Beneficio</p>
+      </div>
     </div>
-  </mat-card>
 
-  <mat-card class="table-card">
-    <mat-card-content class="p-0">
-      <div *ngIf="cargando" class="text-center p-5">
-        <mat-icon class="loading-icon">sync</mat-icon>
-        <p>Sincronizando con báscula...</p>
+    <mat-card class="filter-card">
+      <div class="filter-container">
+        <mat-form-field appearance="outline" class="flex-2">
+          <mat-label>No. Cuenta / NIT Agricultor</mat-label>
+          <input matInput (keyup)="aplicarFiltrosGlobales(inputBusqueda.value)" #inputBusqueda>
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="flex-1">
+          <mat-label>Estado</mat-label>
+          <mat-select [(ngModel)]="filtroEstado" (selectionChange)="aplicarFiltrosGlobales(inputBusqueda.value)">
+            <mat-option value="">Todos</mat-option>
+            <mat-option *ngFor="let est of listaEstados" [value]="est">{{est}}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button color="warn" (click)="limpiarFiltros(inputBusqueda)">
+          <mat-icon>filter_alt_off</mat-icon> Limpiar
+        </button>
       </div>
+    </mat-card>
 
-      <div class="table-responsive" *ngIf="!cargando">
-        <table mat-table [dataSource]="dataSourceFiltrado" class="w-100">
+    <mat-card class="table-card mt-3">
+      <mat-card-content class="p-0">
 
-          <ng-container matColumnDef="noCuenta">
-            <th mat-header-cell *matHeaderCellDef> No. Cuenta </th>
-            <td mat-cell *matCellDef="let element" class="fw-bold"> #{{element.noCuenta}} </td>
+        <div *ngIf="dataSourceFiltrado.length === 0" class="no-records-error p-5 text-center">
+          <mat-icon style="font-size: 36px; color: #f44336; width:36px; height:36px;">info_outline</mat-icon>
+          <h3 class="text-danger fw-bold mt-2">No existen registros</h3>
+          <p class="text-muted">No se encontraron cuentas activas en estados de pesaje.</p>
+        </div>
+
+        <div class="table-responsive" *ngIf="dataSourceFiltrado.length > 0">
+          <table mat-table [dataSource]="dataSourceFiltrado" class="w-100">
+
+            <ng-container matColumnDef="noCuenta">
+              <th mat-header-cell *matHeaderCellDef> No. Cuenta </th>
+              <td mat-cell *matCellDef="let element" class="fw-bold text-primary"> #{{element.nocuenta}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="agricultor">
+              <th mat-header-cell *matHeaderCellDef> Agricultor </th>
+              <td mat-cell *matCellDef="let element"> {{element.nombreagricultor}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="pesoTotal">
+              <th mat-header-cell *matHeaderCellDef> Medida Peso (Esperado) </th>
+              <td mat-cell *matCellDef="let element" class="fw-bold">
+                {{element.pesototalesperado | number:'1.2-2'}} {{element.unidadpesonombre}}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="parcialidades">
+              <th mat-header-cell *matHeaderCellDef class="text-center"> Envíos </th>
+              <td mat-cell *matCellDef="let element" class="text-center">
+                <span class="parcialidad-counter">{{element.cantparcialidades}}</span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="fecha">
+              <th mat-header-cell *matHeaderCellDef> Fecha Envío </th>
+              <td mat-cell *matCellDef="let element"> {{element.fechacreacion | date:'dd/MM/yyyy HH:mm'}} </td>
+            </ng-container>
+
+            <ng-container matColumnDef="estado">
+              <th mat-header-cell *matHeaderCellDef class="text-center"> Estado Cuenta </th>
+              <td mat-cell *matCellDef="let element" class="text-center">
+                <span class="badge-estado" [ngClass]="{
+                  'estado-iniciado':   element.estadonombre === 'Pesaje iniciado',
+                  'estado-finalizado': element.estadonombre === 'Pesaje finalizado'
+                }">
+                  {{ element.estadonombre }}
+                </span>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="acciones">
+              <th mat-header-cell *matHeaderCellDef class="text-center"> Opción </th>
+              <td mat-cell *matCellDef="let element" class="text-center">
+                <button mat-raised-button color="primary" (click)="verDetalleCuenta(element.nocuenta)">
+                  Ver Detalle
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columnasCuentas"></tr>
+            <tr mat-row *matRowDef="let row; columns: columnasCuentas;"></tr>
+          </table>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div *ngIf="vistaDetalle && !cargando">
+    <div class="detail-navigation-bar mb-4" style="display: flex; justify-content: space-between; align-items: center;">
+      <button mat-stroked-button color="primary" (click)="regresarABandeja()">
+        <mat-icon>arrow_back</mat-icon> Regresar a Bandeja
+      </button>
+      <div class="header-ctx text-end">
+        <h2 style="margin: 0;">Envíos del Transporte &mdash; Cuenta: <span style="color: #2e7d32;">#{{cuentaSeleccionada}}</span></h2>
+      </div>
+    </div>
+
+    <mat-card class="table-card mt-3">
+      <mat-card-content class="p-0">
+        <table mat-table [dataSource]="dataSourceDetalles" class="w-100">
+
+          <ng-container matColumnDef="idParcialidad">
+            <th mat-header-cell *matHeaderCellDef> ID Parcialidad </th>
+            <td mat-cell *matCellDef="let detail"><b>Parcialidad #{{detail.noparcialidad}}</b></td>
           </ng-container>
 
-          <ng-container matColumnDef="nit">
-            <th mat-header-cell *matHeaderCellDef> NIT </th>
-            <td mat-cell *matCellDef="let element"> {{element.nitagricultor}} </td>
+          <ng-container matColumnDef="placa">
+            <th mat-header-cell *matHeaderCellDef> Placa del Transporte </th>
+            <td mat-cell *matCellDef="let detail"><span class="plate-style">{{detail.placa}}</span></td>
           </ng-container>
 
-          <ng-container matColumnDef="pesoTotal">
-            <th mat-header-cell *matHeaderCellDef> Peso Esperado </th>
-            <td mat-cell *matCellDef="let element" class="fw-bold"> {{element.pesoTotalEsperado | number:'1.1-2'}}</td>
+          <ng-container matColumnDef="cui">
+            <th mat-header-cell *matHeaderCellDef> CUI del Transportista </th>
+            <td mat-cell *matCellDef="let detail"> {{detail.cuitransportista}} </td>
           </ng-container>
 
-          <ng-container matColumnDef="fecha">
-            <th mat-header-cell *matHeaderCellDef> Fecha Envío </th>
-            <td mat-cell *matCellDef="let element"> {{element.fechaCreacion | date:'dd/MM/yyyy'}} </td>
-          </ng-container>
-
-          <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef class="text-center"> Estado </th>
-            <td mat-cell *matCellDef="let element" class="text-center">
-    <span class="badge-estado" [ngClass]="{
-      'estado-sin-cuenta': element.estadoNombre === 'Sin cuenta creada',
-      'estado-creada':     element.estadoNombre === 'Cuenta creada',
-      'estado-abierta':    element.estadoNombre === 'Cuenta abierta',
-      'estado-iniciado':   element.estadoNombre === 'Pesaje iniciado',
-      'estado-finalizado': element.estadoNombre === 'Pesaje finalizado',
-      'estado-cerrada':    element.estadoNombre === 'Cuenta cerrada',
-      'estado-confirmada': element.estadoNombre === 'Cuenta confirmada'
-    }">
-      {{ element.estadoNombre }}
-    </span>
+          <ng-container matColumnDef="tipoMedida">
+            <th mat-header-cell *matHeaderCellDef> Tipo Medida </th>
+            <td mat-cell *matCellDef="let detail">
+              {{ cuentaActual?.unidadpesonombre || 'Quintales' }}
             </td>
           </ng-container>
 
-          <!-- Agregar dentro de la tabla, junto a los otros ng-container -->
-
-          <ng-container matColumnDef="agricultor">
-            <th mat-header-cell *matHeaderCellDef> Agricultor </th>
-            <td mat-cell *matCellDef="let element"> {{element.nombreAgricultor}} </td>
+          <ng-container matColumnDef="pesoBascula">
+            <th mat-header-cell *matHeaderCellDef> Peso Báscula </th>
+            <td mat-cell *matCellDef="let detail" class="fw-bold" [class.text-success]="detail.pesorecibido">
+              {{detail.pesorecibido ? (detail.pesorecibido | number:'1.2-2') + ' ' + (cuentaActual?.unidadpesonombre || 'qq') : 'Por Pesar'}}
+            </td>
           </ng-container>
 
-          <ng-container matColumnDef="parcialidades">
-            <th mat-header-cell *matHeaderCellDef> Parcialidades </th>
-            <td mat-cell *matCellDef="let element"> {{element.parcialidades}} </td>
+          <ng-container matColumnDef="estadoControl">
+            <th mat-header-cell *matHeaderCellDef> Estado/Texto de control </th>
+            <td mat-cell *matCellDef="let detail">
+              <span class="tag-control-flujo" [ngClass]="detail.estadopesaje === 100 ? 'pesado' : 'pendiente'">
+                {{ detail.estadopesaje === 100 ? detail.textorechazado : 'Pendiente' }}
+              </span>
+            </td>
           </ng-container>
 
-          <ng-container matColumnDef="acciones">
+          <ng-container matColumnDef="operaciones">
             <th mat-header-cell *matHeaderCellDef class="text-center"> Acciones </th>
-            <td mat-cell *matCellDef="let element" class="text-center">
-              <button mat-raised-button color="primary" [routerLink]="['/dashboard/cuentas', element.noCuenta]">
-                Ver Detalle
-              </button>
+            <td mat-cell *matCellDef="let detail" class="text-center">
+              <div class="actions-container" style="display:flex; gap:8px; justify-content: center;">
+
+                <button mat-mini-fab color="primary" matTooltip="Capturar Peso Físico" (click)="abrirModalPeso(detail)">
+                  <mat-icon>scale</mat-icon>
+                </button>
+
+                <button mat-mini-fab color="warn"
+                        [disabled]="detail.estadopesaje !== 100"
+                        matTooltip="Generar Boleta"
+                        (click)="imprimirTicketBoleta(detail)">
+                  <mat-icon>print</mat-icon>
+                </button>
+              </div>
             </td>
           </ng-container>
 
-          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-          <tr mat-row *matRowDef="let row; columns: columnas;"></tr>
+          <tr mat-header-row *matHeaderRowDef="columnasDetalles"></tr>
+          <tr mat-row *matRowDef="let row; columns: columnasDetalles;"></tr>
         </table>
-      </div>
-    </mat-card-content>
-  </mat-card>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
 </div>

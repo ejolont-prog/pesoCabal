@@ -11,11 +11,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
 
-// Asegúrate de que estas rutas sean correctas según tu proyecto
 import { BeneficioService } from '../../services/beneficio.service';
-import { Cuenta } from '../../models/cuenta.model';
+import { Cuenta, DetalleCuenta } from '../../models/cuenta.model';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-cuentas',
@@ -33,74 +34,209 @@ import { Cuenta } from '../../models/cuenta.model';
     MatDatepickerModule,
     MatNativeDateModule,
     MatMenuModule,
+    MatTooltipModule,
     RouterModule
   ],
   templateUrl: './cuentas.component.html',
   styleUrls: ['./cuentas.component.css']
 })
 export class CuentasComponent implements OnInit {
-  // 1. Definición de las columnas que pide el HTML
-  columnas: string[] = ['noCuenta', 'agricultor', 'pesoTotal', 'parcialidades', 'fecha', 'estado', 'acciones'];
 
-  // 2. Variables de datos
-  dataSource: Cuenta[] = [];
+  // Columnas para la Tabla 1 (Bandeja Principal de Cuentas)
+  columnasCuentas: string[] = ['noCuenta', 'agricultor', 'pesoTotal', 'parcialidades', 'fecha', 'estado', 'acciones'];
+
+  // Columnas para la Tabla 2 (Parcialidades en la Vista de Detalle)
+  columnasDetalles: string[] = ['idParcialidad', 'placa', 'cui', 'tipoMedida', 'pesoBascula', 'estadoControl', 'operaciones'];
+
+  // Orígenes de datos para las tablas
+  dataSourceCuentas: Cuenta[] = [];
   dataSourceFiltrado: Cuenta[] = [];
+  dataSourceDetalles: DetalleCuenta[] = [];
 
-  // 3. Variables de estado y filtros
+  // Variables de control de estado y filtros globales
   cargando: boolean = true;
+  vistaDetalle: boolean = false;
+  cuentaSeleccionada: string | null = null;
   filtroEstado: string = '';
-  fechaInicio: Date | null = null;
-  fechaFin: Date | null = null;
-  listaEstados: string[] = ['Pesaje Iniciado', 'Pesaje Finalizado', 'Cuenta Cerrada', 'Cuenta Confirmada'];
+  listaEstados: string[] = ['Pesaje iniciado', 'Pesaje finalizado'];
+
+  // Simulación del operario en sesión para el registro de boletas físicas
+  usuarioSesion: string = 'Usuario_PesoCabal_UMG';
 
   constructor(private beneficioService: BeneficioService) {}
 
   ngOnInit(): void {
-    this.cargarDatos();
+    this.cargarDatosCuentas();
   }
 
-  cargarDatos() {
+  get cuentaActual(): Cuenta | undefined {
+    return this.dataSourceCuentas.find(c => c.nocuenta === this.cuentaSeleccionada);
+  }
+
+  // 1. BANDEJA PRINCIPAL: Recuperar las cuentas filtradas desde el backend
+  cargarDatosCuentas() {
     this.cargando = true;
     this.beneficioService.listarCuentas().subscribe({
       next: (data) => {
-        this.dataSource = data;
+        this.dataSourceCuentas = data;
         this.dataSourceFiltrado = data;
         this.cargando = false;
       },
       error: (err) => {
-        console.error('Error:', err);
+        console.error('Error al obtener cuentas:', err);
         this.cargando = false;
+        Swal.fire('Error de Conexion', 'No se logro sincronizar con el modulo de pesaje.', 'error');
       }
     });
   }
 
-  // 4. Método para filtrar (el que te daba error)
-  aplicarFiltrosGlobales(busqueda: string) {
-    this.dataSourceFiltrado = this.dataSource.filter(c => {
-      const matchBusqueda = c.noCuenta.toLowerCase().includes(busqueda.toLowerCase()) ||
-        c.nitagricultor.includes(busqueda);
-      const matchEstado = this.filtroEstado ? (this.getEstadoNombre(c.idEstadoPesaje) === this.filtroEstado) : true;
-      return matchBusqueda && matchEstado;
+  aplicarFiltrosGlobales(valorBusqueda: string): void {
+    const termino = valorBusqueda ? valorBusqueda.toLowerCase().trim() : '';
+
+    this.dataSourceFiltrado = this.dataSourceCuentas.filter(c => {
+      const matchTexto = c.nocuenta.toLowerCase().includes(termino) ||
+        (c.nitagricultor && c.nitagricultor.toLowerCase().includes(termino));
+
+      const matchNombre = c.nombreagricultor && c.nombreagricultor.toLowerCase().includes(termino);
+
+      const matchEstado = this.filtroEstado ? (c.estadonombre === this.filtroEstado) : true;
+
+      return (matchTexto || matchNombre) && matchEstado;
     });
   }
 
-  // 5. Método para limpiar filtros
+  // Limpieza de inputs y reajuste de la colección filtrada
   limpiarFiltros(input: HTMLInputElement) {
     input.value = '';
     this.filtroEstado = '';
-    this.fechaInicio = null;
-    this.fechaFin = null;
-    this.dataSourceFiltrado = this.dataSource;
+    this.dataSourceFiltrado = this.dataSourceCuentas;
   }
 
-  // 6. Método para obtener el nombre del estado
-  getEstadoNombre(id: number): string {
-    return id === 27 ? 'Pesaje Iniciado' : 'Pendiente';
+  // 2. PANTALLA DE DETALLE: Cargar parcialidades de la cuenta seleccionada
+  verDetalleCuenta(noCuenta: string) {
+    this.cuentaSeleccionada = noCuenta;
+    this.cargando = true;
+    this.beneficioService.listarDetalles(noCuenta).subscribe({
+      next: (detalles) => {
+        this.dataSourceDetalles = detalles;
+        this.vistaDetalle = true;
+        this.cargando = false;
+      },
+      error: (err) => {
+        this.cargando = false;
+        Swal.fire('Error', 'No se pudo obtener el desglose de parcialidades.', 'error');
+      }
+    });
   }
 
-  // 7. Método para cambiar el estado desde el menú
-  cambiarEstado(cuenta: Cuenta, nuevoEstado: string) {
-    console.log(`Cambiando cuenta ${cuenta.noCuenta} a ${nuevoEstado}`);
-    // Aquí puedes agregar la lógica para llamar al backend
+  // Regresar de manera segura a la bandeja principal (Limpia contextos)
+  regresarABandeja() {
+    this.vistaDetalle = false;
+    this.cuentaSeleccionada = null;
+    this.cargarDatosCuentas();
+  }
+
+  // 3. ACCIÓN PRINCIPAL: Guardar pesaje físico (Formulario de Báscula modificado)
+  async abrirModalPeso(parcialidad: DetalleCuenta) {
+    const unidadPorDefecto = this.cuentaActual?.unidadpesonombre || 'Quintales';
+
+    const { value: formValues } = await Swal.fire({
+      title: `Captura de Bascula — Parcialidad #${parcialidad.noparcialidad}`,
+      html: `
+        <div style="text-align: left; font-size: 14px;">
+          <p><b>Placa del Camion:</b> <span style="background:#eee; padding:3px 6px; border-radius:4px; font-family:monospace;">${parcialidad.placa}</span></p>
+
+          <label style="font-weight: bold; margin-top: 12px; display:block;">Peso Obtenido:</label>
+          <input id="swal-peso" class="swal2-input" type="number" step="0.01" style="width: 95%; margin-left:0; margin-top:5px;" placeholder="0.00">
+
+          <label style="font-weight: bold; margin-top: 12px; display:block;">Tipo Medida de Peso:</label>
+          <select id="swal-tipoMedida" class="swal2-input" style="width: 95%; margin-left:0; margin-top:5px; height: 50px; padding: 0 10px;">
+            <option value="Quintales" ${unidadPorDefecto === 'Quintales' ? 'selected' : ''}>Quintales</option>
+            <option value="Libras" ${unidadPorDefecto === 'Libras' ? 'selected' : ''}>Libras</option>
+            <option value="Kilogramos" ${unidadPorDefecto === 'Kilogramos' ? 'selected' : ''}>Kilogramos</option>
+          </select>
+
+          <label style="font-weight: bold; margin-top: 12px; display:block;">Observaciones del Pesaje:</label>
+          <textarea id="swal-observaciones" class="swal2-textarea" style="width: 95%; margin-left:0; margin-top:5px; height:80px; resize:none;" placeholder="Escriba comentarios sobre el pesaje..."></textarea>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Actualizar Peso',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const peso = (document.getElementById('swal-peso') as HTMLInputElement).value;
+        const tipoMedida = (document.getElementById('swal-tipoMedida') as HTMLSelectElement).value;
+        const observaciones = (document.getElementById('swal-observaciones') as HTMLTextAreaElement).value;
+
+        if (!peso || isNaN(Number(peso)) || Number(peso) <= 0) {
+          Swal.showValidationMessage('Debe ingresar una captura de peso numerico valido.');
+          return false;
+        }
+
+        // Devolvemos el objeto completo con la estructura requerida por el backend
+        return {
+          peso: Number(peso),
+          tipoMedida: tipoMedida,
+          observaciones: observaciones || ''
+        };
+      }
+    });
+
+    if (formValues) {
+      this.cargando = true;
+      // Enviamos el payload estructurado completo al servicio
+      this.beneficioService.registrarPeso(parcialidad.iddetallecuenta, formValues).subscribe({
+        next: () => {
+          this.cargando = false;
+          Swal.fire('Exito', 'Se actualizo con exito el peso de la parcialidad.', 'success').then(() => {
+            this.verDetalleCuenta(this.cuentaSeleccionada!); // Refresco automatico obligatorio
+          });
+        },
+        error: (err) => {
+          this.cargando = false;
+          Swal.fire('Accion Bloqueada', err?.error?.error || 'No es posible ingresar pesajes.', 'error');
+        }
+      });
+    }
+  }
+
+  // 4. ACCIÓN SECUNDARIA: Emitir e Imprimir Comprobante de Boleta
+  imprimirTicketBoleta(parcialidad: DetalleCuenta) {
+    this.cargando = true;
+    this.beneficioService.generarBoleta(parcialidad.iddetallecuenta, this.usuarioSesion).subscribe({
+      next: (ticket: any) => {
+        this.cargando = false;
+        const fechaEmitida = new Date(ticket.fechaBoleta).toLocaleString('es-GT', { hour12: true });
+
+        Swal.fire({
+          title: 'Honorario de Bascula Emitido',
+          html: `
+            <div style="text-align: left; font-family: monospace; background: #fffdf2; padding: 12px; border: 1px dashed #444; font-size: 13px; line-height: 1.4; color: #000;">
+              <h4 style="text-align:center; margin-top:0;">*** BOLETA DE BASCULA ***</h4>
+              <p><b>FECHA BOLETA:</b> ${fechaEmitida}</p>
+              <p><b>USUARIO EMISOR:</b> ${ticket.usuario}</p>
+              <hr style="border-top: 1px dashed #444;">
+              <p><b>NO. CUENTA:</b> #${ticket.cuenta}</p>
+              <p><b>ID PESAJE:</b> ${ticket.idPesaje}</p>
+              <p><b>ID PARCIALIDAD:</b> ${ticket.idParcialidad}</p>
+              <hr style="border-top: 1px dashed #444;">
+              <p><b>PLACA VEHICULO:</b> ${ticket.placa}</p>
+              <p><b>CUI PILOTO:</b> ${ticket.cui}</p>
+              <p style="font-size: 14px; font-weight:bold; margin-top:10px;">
+                <b>PESO BASCULA:</b>
+                <span style="background:#000; color:#fff; padding:1px 4px;">
+                  ${ticket.pesoObtenido} ${ticket.tipoMedida || 'Quintales'}
+                </span>
+              </p>
+            </div>
+          `,
+          confirmButtonText: 'Cerrar'
+        });
+      },
+      error: (err) => {
+        this.cargando = false;
+        Swal.fire('Error', err?.error?.error || 'No se pudo generar la boleta.', 'error');
+      }
+    });
   }
 }
